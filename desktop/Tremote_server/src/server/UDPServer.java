@@ -6,60 +6,79 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Random;
+import java.awt.Robot;
+import java.awt.event.KeyEvent;
 
 public class UDPServer {
 	
+	// Private constants
 	private final int BUFFER_SIZE = 256;
 	private final String CONNECTION_ACCEPT_CODE = "0001";
 	private final String KEY_RIGHT_CODE = "0002";
 	private final String KEY_LEFT_CODE = "0003";
 	private final String EXIT_CODE = "0004";
+	
+	// Public constants
 	public final static int DEFAULT_PORT = 2050;
 
+	// Variable declarations
+	private Robot robot;
 	private DatagramSocket socket;
-	public int port;
-	public String password;
+	private int port;
+	private String password;
 	private byte intents = 0;
 	private String clientIP;
 	
-	/* Initializes a server with the given port and sets a PIN code */
+	/* Constructor
+	 * Initialize the server with port number and set a new password
+	 * */
 	public UDPServer(int port) throws SocketException, IOException {
 		this.port = port;
 		this.socket = new DatagramSocket(this.port);
 		this.password = setPassword();
 	}
 	
-	/* Listen for key presses in an infinite loop */
+	/* Listen indefinitely for key presses
+	 * Only listen for key right or key left to move through slides
+	 * Listen as well for exit so we can free the resources
+	 * */
 	private void listen() throws Exception{
+		
+		// Variable assignment and initialization
 		System.out.println("PIN code accepted, listening for data.");
 		String msg;
 		String sentPassword;
 		String keyCode;
+		robot = new Robot();
 		
+		// Loop forever
 		while(true) {
+			// Receive a message (key press from the phone)
 			byte[] buffer = new byte[BUFFER_SIZE];
 			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 			socket.receive(packet);
+			
+			// Decode the message
 			msg = new String(packet.getData()).trim();
 			sentPassword = msg.substring(0, msg.indexOf("#"));
 			keyCode = msg.substring(msg.indexOf("#") + 1);
-			if(sentPassword.equals(password)) { // check password for security
+			
+			if(sentPassword.equals(password)) { // Check password for security
 				switch(keyCode) {
 				case KEY_RIGHT_CODE:
-					//TODO: simulate key right
+					robot.keyPress(KeyEvent.VK_RIGHT);
 					System.out.println("KEY RIGHT PRESSED");
 					break;
 				case KEY_LEFT_CODE:
-					//TODO: simulate key left
+					robot.keyPress(KeyEvent.VK_LEFT);
 					System.out.println("KEY LEFT PRESSED");
 					break;
 				case EXIT_CODE:
 					System.out.println("EXIT PRESSED");
 					exit();
-					// exit
 					break;
 				default:
-					// unknown message, discard and log it
+					// Unknown message, discard and log it
 					System.out.println("MSG RECEIVED ERROR: " + keyCode);
 				}
 			}
@@ -67,7 +86,7 @@ public class UDPServer {
 	
 	}
 	
-	/* Returns a 4 digit PIN for the session */
+	/* Returns a pseudorandom 4-digit PIN for the session */
 	private String setPassword() {
 		return Integer.toString(1000 + new Random().nextInt(9000));
 	}
