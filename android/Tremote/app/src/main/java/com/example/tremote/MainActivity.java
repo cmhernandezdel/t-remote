@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.EditText;
 import java.net.*;
 
@@ -33,8 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
     /* Establish connection when SEND button is pressed */
     // TODO: Check for errors
-    // TODO: Assign to button
-    private void establishConnection() throws Exception{
+    public void establishConnection(View view) throws Exception{
 
         /* Variable assignments and initializations */
         data = new byte[BUFFER_SIZE];
@@ -44,15 +44,35 @@ public class MainActivity extends AppCompatActivity {
         String password = ((EditText) findViewById(R.id.passwordInput)).getText().toString();
         String message = password + "#" + CONNECTION_ACCEPT_CODE;
         data = message.getBytes();
-        DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DEFAULT_PORT);
+        final DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DEFAULT_PORT);
 
         /* Send the data to the server */
-        clientSocket.send(sendPacket);
+        /* Needs to be done in another thread, otherwise NetworkOnMainThreadException is thrown */
+        Thread sendThread = new Thread(new Runnable() {
+            @Override
+            public void run(){
+                try{ clientSocket.send(sendPacket); }
+                catch (Exception e){ Log.d("TEST", "EXCEPTION SENDING"); }
+            }
+        });
+        sendThread.start();
+        Log.d("TEST", "Sent" + data);
 
         /* Now wait for server ACK */
         receiveData = new byte[BUFFER_SIZE];
-        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-        clientSocket.receive(receivePacket);
+        final DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
+        /* Receive data from the server */
+        /* Needs to be done in another thread, otherwise NetworkOnMainThreadException is thrown */
+        Thread receiveThread = new Thread(new Runnable() {
+            @Override
+            public void run(){
+                try{ clientSocket.receive(receivePacket); }
+                catch (Exception e) { }
+            }
+        });
+        receiveThread.start();
+
         String ack = new String(receivePacket.getData());
 
 
