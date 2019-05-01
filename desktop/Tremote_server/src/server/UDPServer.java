@@ -27,7 +27,7 @@ public class UDPServer {
 	private int port;
 	private String password;
 	private byte intents = 0;
-	private String clientIP;
+	private InetAddress clientIP;
 	
 	/* Constructor
 	 * Initialize the server with port number and set a new password
@@ -106,9 +106,10 @@ public class UDPServer {
 		byte[] buffer = new byte[BUFFER_SIZE];
 		DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 		socket.receive(packet);
+		System.out.println("Received packet");
 		msg = new String(packet.getData()).trim();
 		String[] msgDecoded = msg.split("#");
-		clientIP = msgDecoded[2];
+		clientIP = packet.getAddress();
 		
 		if(msgDecoded[0].equals(password) && msgDecoded[1].equals(CONNECTION_ACCEPT_CODE)) return true;
 		else return false;
@@ -117,13 +118,11 @@ public class UDPServer {
 	/* Tries to establish the connection between the server and the phone */
 	public void establishConnection() throws Exception{
 		System.out.println("Created UDP Server with port: " + port + " and PIN: " + password);
-		System.out.println("Address: " + InetAddress.getLocalHost().toString());
-		System.out.println("Client address: " + clientIP);
+		System.out.println("Address: " + InetAddress.getLocalHost().getHostAddress().toString());
 		if(connect()) {
-			byte[] sendData = new byte[BUFFER_SIZE];
-			sendData = "ACK".getBytes();
-			InetAddress phoneAddress = InetAddress.getByName(clientIP);
-			socket.send(new DatagramPacket(sendData, sendData.length, phoneAddress, DEFAULT_PORT));
+			byte[] sendData = "ACK".getBytes();
+			System.out.println("Client address: " + clientIP.toString());
+			socket.send(new DatagramPacket(sendData, sendData.length, clientIP, DEFAULT_PORT));
 			listen();
 		}
 		else {

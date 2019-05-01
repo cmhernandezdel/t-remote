@@ -2,6 +2,7 @@ package com.example.tremote;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
@@ -46,24 +47,38 @@ public class KeylogActivity extends AppCompatActivity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         try {
             String message;
-            DatagramPacket sendPacket;
+            Thread sendThread;
             switch (keyCode) {
                 case KeyEvent.KEYCODE_VOLUME_DOWN:
                     message = password + "#" + KEY_RIGHT_CODE;
                     data = message.getBytes();
-                    sendPacket = new DatagramPacket(data, data.length, serverAddress, MainActivity.DEFAULT_PORT);
-                    clientSocket.send(sendPacket);
+                    final DatagramPacket sendPacket = new DatagramPacket(data, data.length, serverAddress, MainActivity.DEFAULT_PORT);
+                    sendThread = new Thread(new Runnable() {
+                        @Override
+                        public void run(){
+                            try{ clientSocket.send(sendPacket); Log.d("TEST", "Sent" + sendPacket.getData().toString());}
+                            catch (Exception e){ Log.d("TEST", "EXCEPTION SENDING"); }
+                        }
+                    });
+                    sendThread.start();
                     return true;
                 case KeyEvent.KEYCODE_VOLUME_UP:
                     message = password + "#" + KEY_LEFT_CODE;
                     data = message.getBytes();
-                    sendPacket = new DatagramPacket(data, data.length, serverAddress, MainActivity.DEFAULT_PORT);
-                    clientSocket.send(sendPacket);
+                    final DatagramPacket sendLPacket = new DatagramPacket(data, data.length, serverAddress, MainActivity.DEFAULT_PORT);
+                    sendThread = new Thread(new Runnable() {
+                        @Override
+                        public void run(){
+                            try{ clientSocket.send(sendLPacket); Log.d("TEST", "Sent" + sendLPacket.getData().toString());}
+                            catch (Exception e){ Log.d("TEST", "EXCEPTION SENDING"); }
+                        }
+                    });
+                    sendThread.start();
                     return true;
                 default:
-                    return super.dispatchKeyEvent(event);
+                    return false;
             }
-        } catch (Exception e){ return super.dispatchKeyEvent(event); }
+        } catch (Exception e){ Log.d("EXCEPTION", "Exception: " + e); return false; }
     }
 
     @Override

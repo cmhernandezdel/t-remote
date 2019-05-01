@@ -1,12 +1,17 @@
 package com.example.tremote;
 
 import android.content.Intent;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+
+import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,14 +39,15 @@ public class MainActivity extends AppCompatActivity {
 
     /* Establish connection when SEND button is pressed */
     // TODO: Check for errors
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public void establishConnection(View view) throws Exception{
 
         /* Variable assignments and initializations */
-        data = new byte[BUFFER_SIZE];
         clientSocket = new DatagramSocket();
         serverIP = ((EditText)findViewById(R.id.ipInput)).getText().toString();
+        Log.d("Info", "IP ADDRESS: " + serverIP);
         InetAddress IPAddress = InetAddress.getByName(serverIP);
-        String password = ((EditText) findViewById(R.id.passwordInput)).getText().toString();
+        final String password = ((EditText) findViewById(R.id.passwordInput)).getText().toString();
         String message = password + "#" + CONNECTION_ACCEPT_CODE;
         data = message.getBytes();
         final DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DEFAULT_PORT);
@@ -51,44 +57,20 @@ public class MainActivity extends AppCompatActivity {
         Thread sendThread = new Thread(new Runnable() {
             @Override
             public void run(){
-                try{ clientSocket.send(sendPacket); }
+                try{ clientSocket.send(sendPacket); Log.d("TEST", "Sent" + sendPacket.getData().toString());}
                 catch (Exception e){ Log.d("TEST", "EXCEPTION SENDING"); }
             }
         });
         sendThread.start();
-        Log.d("TEST", "Sent" + data);
 
-        /* Now wait for server ACK */
-        receiveData = new byte[BUFFER_SIZE];
-        final DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-
-        /* Receive data from the server */
-        /* Needs to be done in another thread, otherwise NetworkOnMainThreadException is thrown */
-        Thread receiveThread = new Thread(new Runnable() {
-            @Override
-            public void run(){
-                try{ clientSocket.receive(receivePacket); }
-                catch (Exception e) { }
-            }
-        });
-        receiveThread.start();
-
-        String ack = new String(receivePacket.getData());
+        /* Go to the next activity */
+        Intent intent = new Intent(getApplicationContext(), KeylogActivity.class);
+        intent.putExtra(EXTRA_IPADDR, serverIP);
+        intent.putExtra(EXTRA_PASSWD, password);
+        startActivity(intent);
 
 
-        /* If receive ACK go to next activity */
-        if(ack.equals(ACK_ACCEPTED)){
-            Intent intent = new Intent(this, KeylogActivity.class);
-            intent.putExtra(EXTRA_IPADDR, serverIP);
-            intent.putExtra(EXTRA_PASSWD, password);
-            startActivity(intent);
-        }
 
-        /* If we don't, log error */
-        // TODO: do actual job here
-        else{
-            Log.d("[Error]", "Server rejected the connection: " + ack);
-        }
     }
 
 }
